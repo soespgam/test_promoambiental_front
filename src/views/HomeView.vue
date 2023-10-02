@@ -218,10 +218,11 @@ export default {
   methods: {
     async getSeguimientos() {
       try {
-        const seguimientos = axios.get(
+        const seguimientos = await axios.get(
           "http://127.0.0.1:8000/api/seguimientos"
         );
         this.seguimientos = seguimientos.data;
+        
       } catch (error) {
         this.$swal("Error al Consultar los seguimientos");
       }
