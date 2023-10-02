@@ -1,12 +1,12 @@
 <template>
   <div class="row">
     <div class="row">
-    <div class="col-10 offset-1 mt-3">
-      <div class="alert alert-primary text-center" role="alert">
-        <h3>Seguimiento de Clientes </h3>
+      <div class="col-10 offset-1 mt-3">
+        <div class="alert alert-primary text-center" role="alert">
+          <h3>Seguimiento de Clientes</h3>
+        </div>
       </div>
     </div>
-  </div>
 
     <div class="col-12" style="padding: 20px">
       <table class="table table-striped table-bordered">
@@ -42,7 +42,7 @@
                     class="fas fa-edit"
                     type="button"
                     data-bs-toggle="modal"
-                    data-bs-target="#exampleModal"
+                    data-bs-target="#Update"
                     @click="get_seguimiento_by_id(seguimiento.id)"
                   ></i>
                 </div>
@@ -62,7 +62,7 @@
     <!-- Modal Edit -->
     <div
       class="modal fade"
-      id="exampleModal"
+      id="Update"
       tabindex="-1"
       aria-labelledby="exampleModalLabel"
       aria-hidden="true"
@@ -74,6 +74,7 @@
               <b>Editar seguimiento</b>
             </h5>
             <button
+              id="closeModal"
               type="button"
               class="btn-close"
               data-bs-dismiss="modal"
@@ -208,43 +209,60 @@ export default {
         dias: "",
         fecha_proximo_seguimiento: "",
       },
+      proximo_seguimiento: "",
     };
   },
   mounted() {
     this.getSeguimientos();
   },
   methods: {
-    getSeguimientos() {
-      axios.get("http://127.0.0.1:8000/api/seguimientos").then((res) => {
-        this.seguimientos = res.data;
-      });
-    },
-    get_seguimiento_by_id(id) {
-      axios.get("http://127.0.0.1:8000/api/seguimiento/" + id).then((res) => {
-        this.seguimiento = res.data;
-        console.log("data", this.seguimiento);
-      });
-    },
-
-    delete_seguimiento_by_id(id) {
-      axios
-        .delete("http://127.0.0.1:8000/api/seguimiento/" + id)
-        .then((res) => {
-          console.log(res);
-          alert("el seguimiento a sido eliminado correctamente");
-          this.getSeguimientos();
-        });
+    async getSeguimientos() {
+      try {
+        const seguimientos = axios.get(
+          "http://127.0.0.1:8000/api/seguimientos"
+        );
+        this.seguimientos = seguimientos.data;
+      } catch (error) {
+        this.$swal("Error al Consultar los seguimientos");
+      }
     },
 
-    updateSeguimiento() {
-      this.update_seguimiento.id = this.seguimiento.id;
-      this.update_seguimiento.Nombres = this.seguimiento.Nombres;
-      this.update_seguimiento.Apellidos = this.seguimiento.Apellidos;
-      this.update_seguimiento.Asunto = this.seguimiento.Asunto;
-      this.update_seguimiento.correo = this.seguimiento.correo;
-      this.update_seguimiento.Telefono = this.seguimiento.Telefono;
-      this.update_seguimiento.dias = this.seguimiento.dias;
+    async get_seguimiento_by_id(id) {
+      try {
+        const seguimiento_by_id = await axios.get(
+          `http://127.0.0.1:8000/api/seguimiento/${id}`
+        );
+        this.seguimiento = seguimiento_by_id.data;
+      } catch (error) {
+        this.$swal("Error al Consultar el seguimiento");
+      }
+    },
 
+    async delete_seguimiento_by_id(id) {
+      try {
+        const responseDelete = await axios.delete(
+          `http://127.0.0.1:8000/api/seguimiento/${id}`
+        );
+        console.log(responseDelete);
+        this.$swal("seguimiento eliminado exitosamente");
+        this.getSeguimientos();
+      } catch (error) {
+        this.$swal("Error al borrar");
+      }
+    },
+
+    calculoFecha() {
+      let fecha = new Date();
+      this.update_seguimiento.fecha = fecha.toISOString().split("T")[0];
+      console.log(this.update_seguimiento.fecha);
+
+      let diaEnMilisegundos = 1000 * 60 * 60 * 24;
+      let calculo =
+        fecha.getTime() + diaEnMilisegundos * this.update_seguimiento.dias;
+      this.proximo_seguimiento = new Date(calculo);
+    },
+
+    validateDate() {
       if (!this.update_seguimiento.Nombres) {
         this.$swal("falta el nombre!!!");
         return;
@@ -269,27 +287,47 @@ export default {
         this.$swal("falta el Telefono!!!");
         return;
       }
-      this.update_seguimiento.fecha = new Date();
-      let diaEnMilisegundos = 1000 * 60 * 60 * 24;
-      let calculo =
-        this.update_seguimiento.fecha.getTime() +
-        diaEnMilisegundos * this.update_seguimiento.dias;
-      let fecha_proximo_seguimiento = new Date(calculo).getDay();
-      console.log(fecha_proximo_seguimiento);
+    },
 
-      if (fecha_proximo_seguimiento == 6 || fecha_proximo_seguimiento == 0) {
-        this.$swal(
-          "la fecha del proximo seguimiento cae un dia no laboral , intente colocando mas o menos dias "
-        );
-      } else {
-        this.update_seguimiento.fecha_proximo_seguimiento = new Date(calculo);
+    async updateSeguimiento() {
+      let buttonClose = document.getElementById("closeModal");
+      this.update_seguimiento.fecha_proximo_seguimiento =
+        this.proximo_seguimiento.toISOString().split("T")[0];
+
+      try {
+        this.update_seguimiento.id = this.seguimiento.id;
+        this.update_seguimiento.Nombres = this.seguimiento.Nombres;
+        this.update_seguimiento.Apellidos = this.seguimiento.Apellidos;
+        this.update_seguimiento.Asunto = this.seguimiento.Asunto;
+        this.update_seguimiento.correo = this.seguimiento.correo;
+        this.update_seguimiento.Telefono = this.seguimiento.Telefono;
+        this.update_seguimiento.dias = this.seguimiento.dias;
+        this.validateDate();
+        this.calculoFecha();
+        let fecha_proximo_seguimiento_dia = this.proximo_seguimiento.getDay();
+
+        if (
+          fecha_proximo_seguimiento_dia == 6 ||
+          fecha_proximo_seguimiento_dia == 0
+        ) {
+          this.$swal(
+            "la fecha del proximo seguimiento cae un dia no laboral , intente colocando mas o menos dias "
+          );
+          return;
+        } else {
+          const updateSeguimiento = await axios.post(
+            "http://127.0.0.1:8000/api/update/",
+            this.update_seguimiento
+          );
+          console.log();
+          this.$swal("seguimiento actuallizado exitosamente");
+          this.getSeguimientos();
+          console.log(updateSeguimiento);
+          buttonClose.click();
+        }
+      } catch (error) {
+        this.$swal("error al actualizar");
       }
-    
-      axios
-        .post("http://127.0.0.1:8000/api/update/", this.update_seguimiento)
-        .then((res) => {
-          console.log("res_update", res);
-        });
     },
   },
 };
