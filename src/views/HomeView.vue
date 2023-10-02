@@ -255,7 +255,6 @@ export default {
     calculoFecha() {
       let fecha = new Date();
       this.update_seguimiento.fecha = fecha.toISOString().split("T")[0];
-      console.log(this.update_seguimiento.fecha);
 
       let diaEnMilisegundos = 1000 * 60 * 60 * 24;
       let calculo =
@@ -266,34 +265,28 @@ export default {
     validateDate() {
       if (!this.update_seguimiento.Nombres) {
         this.$swal("falta el nombre!!!");
-        return;
-      }
-
-      if (!this.update_seguimiento.Apellidos) {
+        return false;
+      }else if (!this.update_seguimiento.Apellidos) {
         this.$swal("falta el Apellidos!!!");
-        return;
-      }
-
-      if (!this.update_seguimiento.Asunto) {
+        return false;
+      }else if (!this.update_seguimiento.Asunto) {
         this.$swal("falta el Asunto!!!");
-        return;
-      }
-
-      if (!this.update_seguimiento.correo) {
+        return false;
+      }else if (!this.update_seguimiento.correo) {
         this.$swal("falta el correo!!!");
-        return;
-      }
-
-      if (!this.update_seguimiento.Telefono) {
+        return false;
+      }else if (!this.update_seguimiento.Telefono) {
         this.$swal("falta el Telefono!!!");
-        return;
+        return false;
+      }else {
+        return true;
       }
     },
 
     async updateSeguimiento() {
       let buttonClose = document.getElementById("closeModal");
-      this.update_seguimiento.fecha_proximo_seguimiento =
-        this.proximo_seguimiento.toISOString().split("T")[0];
+      console.log("ERRor")
+      
 
       try {
         this.update_seguimiento.id = this.seguimiento.id;
@@ -303,19 +296,21 @@ export default {
         this.update_seguimiento.correo = this.seguimiento.correo;
         this.update_seguimiento.Telefono = this.seguimiento.Telefono;
         this.update_seguimiento.dias = this.seguimiento.dias;
-        this.validateDate();
+        
         this.calculoFecha();
+        this.update_seguimiento.fecha_proximo_seguimiento =
+        this.proximo_seguimiento.toISOString().split("T")[0];
         let fecha_proximo_seguimiento_dia = this.proximo_seguimiento.getDay();
 
         if (
           fecha_proximo_seguimiento_dia == 6 ||
-          fecha_proximo_seguimiento_dia == 0
+          fecha_proximo_seguimiento_dia == 0 
         ) {
           this.$swal(
             "la fecha del proximo seguimiento cae un dia no laboral , intente colocando mas o menos dias "
           );
           return;
-        } else {
+        } else if(this.validateDate()){
           const updateSeguimiento = await axios.post(
             "http://127.0.0.1:8000/api/update/",
             this.update_seguimiento
